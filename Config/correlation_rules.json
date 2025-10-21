@@ -1,0 +1,631 @@
+[
+  {
+    "id": 1,
+    "name": "Behavioral Anomaly: Rare Port Connection",
+    "base_score": 35,
+    "conditions": {
+      "event.dataset": "conn",
+      "destination.port": {
+        "type": "is_rare_port",
+        "threshold": 1.0
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1595",
+    "mitre_tactic": "Reconnaissance",
+    "updated_at": "2025-10-15T22:24:24.275627"
+  },
+  {
+    "id": 2,
+    "name": "Behavioral Anomaly: New User-Agent Observed",
+    "base_score": 40,
+    "conditions": {
+      "event.dataset": "http",
+      "user_agent.original": {
+        "type": "is_new_user_agent"
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1595",
+    "mitre_tactic": "Reconnaissance"
+  },
+  {
+    "id": 3,
+    "name": "Recon: Suspicious User-Agent",
+    "base_score": 40,
+    "conditions": {
+      "event.dataset": "http",
+      "user_agent.original": {
+        "type": "contains_any",
+        "value": [
+          "nmap",
+          "sqlmap",
+          "masscan",
+          "curl",
+          "wget",
+          "nikto"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1595.002",
+    "mitre_tactic": "Reconnaissance"
+  },
+  {
+    "id": 4,
+    "name": "Recon: DNS Zone Transfer Attempt (AXFR)",
+    "base_score": 50,
+    "conditions": {
+      "event.dataset": "dns",
+      "dns.question.type": "AXFR"
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1589",
+    "mitre_tactic": "Reconnaissance"
+  },
+  {
+    "id": 5,
+    "name": "Recon: Connection Refused (Potential Port Scan)",
+    "base_score": 10,
+    "conditions": {
+      "event.dataset": "conn",
+      "network.state": "REJ"
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1595.001",
+    "mitre_tactic": "Reconnaissance"
+  },
+  {
+    "id": 6,
+    "name": "Initial Access: SSH Login Failure",
+    "base_score": 15,
+    "conditions": {
+      "event.dataset": "ssh",
+      "event.outcome": {
+        "type": "not_equals",
+        "value": true
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1110.001",
+    "mitre_tactic": "Credential Access"
+  },
+  {
+    "id": 7,
+    "name": "Initial Access: SSH Login Success",
+    "base_score": 5,
+    "conditions": {
+      "event.dataset": "ssh",
+      "event.outcome": true
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1078",
+    "mitre_tactic": "Initial Access"
+  },
+  {
+    "id": 8,
+    "name": "Initial Access: FTP Login",
+    "base_score": 10,
+    "conditions": {
+      "event.dataset": "ftp"
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1078",
+    "mitre_tactic": "Initial Access"
+  },
+  {
+    "id": 9,
+    "name": "Initial Access: MySQL Root Login Attempt",
+    "base_score": 70,
+    "conditions": {
+      "event.dataset": "mysql",
+      "event.action": "login",
+      "database.query": "root"
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1078.001",
+    "mitre_tactic": "Initial Access",
+    "updated_at": "2025-10-15T22:26:23.912023"
+  },
+  {
+    "id": 10,
+    "name": "Initial Access: RDP Connection Detected",
+    "base_score": 10,
+    "conditions": {
+      "event.dataset": "conn",
+      "destination.port": 3389
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1133",
+    "mitre_tactic": "Initial Access"
+  },
+  {
+    "id": 11,
+    "name": "Initial Access: Insecure Telnet Protocol Use",
+    "base_score": 20,
+    "conditions": {
+      "event.dataset": "conn",
+      "destination.port": 23
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1078",
+    "mitre_tactic": "Initial Access"
+  },
+  {
+    "id": 12,
+    "name": "Execution: HTTP Request to Executable",
+    "base_score": 30,
+    "conditions": {
+      "event.dataset": "http",
+      "url.path": {
+        "type": "ends_with_any",
+        "value": [
+          ".exe",
+          ".bat",
+          ".cmd",
+          ".scr"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1204.002",
+    "mitre_tactic": "Execution"
+  },
+  {
+    "id": 13,
+    "name": "Execution: SMB Transfer of Executable",
+    "base_score": 40,
+    "conditions": {
+      "event.dataset": "smb_files",
+      "file.name": {
+        "type": "ends_with_any",
+        "value": [
+          ".exe",
+          ".bat",
+          ".dll"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1021.002",
+    "mitre_tactic": "Lateral Movement"
+  },
+  {
+    "id": 14,
+    "name": "Delivery: Known Malicious Executable Downloaded (jovgraph.exe)",
+    "base_score": 90,
+    "conditions": {
+      "event.dataset": "http",
+      "url.path": {
+        "type": "contains_any",
+        "value": [
+          "jovgraph.exe"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1105",
+    "mitre_tactic": "Command and Control"
+  },
+  {
+    "id": 15,
+    "name": "Delivery: Office Document with Macros Transferred",
+    "base_score": 60,
+    "conditions": {
+      "event.dataset": "smb_files",
+      "file.name": {
+        "type": "ends_with_any",
+        "value": [
+          ".docm",
+          ".xlsm",
+          ".pptm"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1566.001",
+    "mitre_tactic": "Initial Access"
+  },
+  {
+    "id": 16,
+    "name": "Delivery: Java Archive Downloaded via HTTP",
+    "base_score": 50,
+    "conditions": {
+      "event.dataset": "http",
+      "url.path": {
+        "type": "ends_with_any",
+        "value": [
+          ".jar"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1105",
+    "mitre_tactic": "Command and Control"
+  },
+  {
+    "id": 17,
+    "name": "Delivery: Script File Transferred (VBS/JS)",
+    "base_score": 55,
+    "conditions": {
+      "event.dataset": "smb_files",
+      "file.name": {
+        "type": "ends_with_any",
+        "value": [
+          ".vbs",
+          ".js",
+          ".jse"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1566.001",
+    "mitre_tactic": "Initial Access"
+  },
+  {
+    "id": 18,
+    "name": "Credential Access: NTLM Hash Transmitted",
+    "base_score": 65,
+    "conditions": {
+      "event.dataset": "ntlm",
+      "event.action": "challenge"
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1550.002",
+    "mitre_tactic": "Lateral Movement"
+  },
+  {
+    "id": 19,
+    "name": "Credential Access: Cleartext SMTP Authentication",
+    "base_score": 45,
+    "conditions": {
+      "event.dataset": "smtp",
+      "event.action": "login"
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1078",
+    "mitre_tactic": "Credential Access"
+  },
+  {
+    "id": 20,
+    "name": "Defense Evasion: Outdated & Suspicious User-Agent (IE6)",
+    "base_score": 25,
+    "conditions": {
+      "event.dataset": "http",
+      "user_agent.original": {
+        "type": "contains_any",
+        "value": [
+          "MSIE 6",
+          "Internet Explorer 6"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1071.001",
+    "mitre_tactic": "Command and Control"
+  },
+  {
+    "id": 21,
+    "name": "Defense Evasion: Unescaped Characters in URI",
+    "base_score": 30,
+    "conditions": {
+      "event.dataset": "http",
+      "url.original": {
+        "type": "contains_any",
+        "value": [
+          "%00",
+          "%0d%0a",
+          "%09"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1027.004",
+    "mitre_tactic": "Defense Evasion"
+  },
+  {
+    "id": 22,
+    "name": "Defense Evasion: Connection to High Ephemeral Port",
+    "base_score": 20,
+    "conditions": {
+      "event.dataset": "conn",
+      "destination.port": {
+        "type": "gt",
+        "value": 49151
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1071",
+    "mitre_tactic": "Command and Control"
+  },
+  {
+    "id": 23,
+    "name": "Defense Evasion: Suricata Alert Suppression Detected",
+    "base_score": 80,
+    "conditions": {
+      "event.module": "suricata",
+      "event.kind": "alert",
+      "rule.name": {
+        "type": "contains_any",
+        "value": [
+          "alert suppression",
+          "signature evasion"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1562.001",
+    "mitre_tactic": "Defense Evasion"
+  },
+  {
+    "id": 24,
+    "name": "C2: Potential DNS Tunneling (Long Query)",
+    "base_score": 50,
+    "conditions": {
+      "event.dataset": "dns",
+      "dns.question.name": {
+        "type": "length_gt",
+        "value": 50
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1071.004",
+    "mitre_tactic": "Command and Control"
+  },
+  {
+    "id": 25,
+    "name": "C2: Self-Signed SSL/TLS Certificate",
+    "base_score": 35,
+    "conditions": {
+      "event.dataset": "ssl",
+      "tls.certificates.issuer": {
+        "type": "not_equals",
+        "value": "Known CA"
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1573",
+    "mitre_tactic": "Command and Control"
+  },
+  {
+    "id": 26,
+    "name": "C2: BitTorrent Tracker Communication",
+    "base_score": 30,
+    "conditions": {
+      "event.dataset": "weird",
+      "event.reason": {
+        "type": "contains_any",
+        "value": [
+          "BitTorrent"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1071",
+    "mitre_tactic": "Command and Control"
+  },
+  {
+    "id": 27,
+    "name": "C2: IRC Communication Detected",
+    "base_score": 40,
+    "conditions": {
+      "event.dataset": "conn",
+      "network.protocol": "irc"
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1071.003",
+    "mitre_tactic": "Command and Control"
+  },
+  {
+    "id": 28,
+    "name": "C2: Connection to Dynamic DNS Domain",
+    "base_score": 45,
+    "conditions": {
+      "event.dataset": "dns",
+      "dns.question.name": {
+        "type": "ends_with_any",
+        "value": [
+          ".ddns.net",
+          ".no-ip.com",
+          ".duckdns.org"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1071.004",
+    "mitre_tactic": "Command and Control"
+  },
+  {
+    "id": 29,
+    "name": "Lateral Movement: SMB Share Access",
+    "base_score": 10,
+    "conditions": {
+      "event.dataset": "smb_mapping"
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1021.002",
+    "mitre_tactic": "Lateral Movement"
+  },
+  {
+    "id": 30,
+    "name": "Lateral Movement: SMB Write to Admin Share (ADMIN$ or C$)",
+    "base_score": 65,
+    "conditions": {
+      "event.dataset": "smb_files",
+      "file.path": {
+        "type": "contains_any",
+        "value": [
+          "ADMIN$",
+          "C$"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1021.002",
+    "mitre_tactic": "Lateral Movement"
+  },
+  {
+    "id": 31,
+    "name": "Impact: Potential SQL Injection Attempt",
+    "base_score": 90,
+    "conditions": {
+      "event.dataset": "http",
+      "url.path": {
+        "type": "contains_any",
+        "value": [
+          "UNION SELECT",
+          "'1'='1'"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1190",
+    "mitre_tactic": "Initial Access"
+  },
+  {
+    "id": 32,
+    "name": "Impact: MySQL Sensitive Command (DROP/DELETE)",
+    "base_score": 80,
+    "conditions": {
+      "event.dataset": "mysql",
+      "event.action": {
+        "type": "is_in",
+        "value": [
+          "DROP",
+          "DELETE"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1485",
+    "mitre_tactic": "Impact"
+  },
+  {
+    "id": 33,
+    "name": "Suricata: Web Application Attack",
+    "base_score": 75,
+    "conditions": {
+      "event.module": "suricata",
+      "event.kind": "alert",
+      "rule.name": {
+        "type": "contains_any",
+        "value": [
+          "SQL Injection",
+          "XSS",
+          "Cross Site Scripting",
+          "Directory Traversal"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1190",
+    "mitre_tactic": "Initial Access"
+  },
+  {
+    "id": 34,
+    "name": "Suricata: RPC Service Exploit Attempt",
+    "base_score": 70,
+    "conditions": {
+      "event.module": "suricata",
+      "event.kind": "alert",
+      "rule.name": {
+        "type": "contains_any",
+        "value": [
+          "portmap",
+          "RPC",
+          "dcerpc"
+        ]
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-14T19:27:00Z",
+    "mitre_technique_id": "T1210",
+    "mitre_tactic": "Exploitation of Remote Services"
+  },
+  {
+    "id": 35,
+    "name": "GeoIP: Connection to High-Risk Country",
+    "base_score": 50,
+    "conditions": {
+      "event.dataset": "conn",
+      "destination.ip": {
+        "type": "is_high_risk_country"
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-15T16:00:00Z",
+    "mitre_technique_id": "T1595",
+    "mitre_tactic": "Reconnaissance",
+    "description": "Connection to IP in a high-risk country (e.g., North Korea, Iran) indicating potential malicious activity",
+    "updated_at": "2025-10-15T16:00:00Z"
+  },
+  {
+    "id": 36,
+    "name": "GeoIP UEBA: New Country Contacted",
+    "base_score": 40,
+    "conditions": {
+      "event.dataset": "conn",
+      "destination.ip": {
+        "type": "is_new_country",
+        "threshold": 100
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-15T16:00:00Z",
+    "mitre_technique_id": "T1595",
+    "mitre_tactic": "Reconnaissance",
+    "description": "Connection to a new country not previously contacted by this entity, indicating potential reconnaissance or compromise",
+    "updated_at": "2025-10-16T10:07:25.519647"
+  },
+  {
+    "id": 37,
+    "name": "GeoIP UEBA: Rare ASN Connection",
+    "base_score": 45,
+    "conditions": {
+      "event.dataset": "conn",
+      "destination.ip": {
+        "type": "is_rare_asn",
+        "threshold": 1.0
+      }
+    },
+    "enabled": true,
+    "created_at": "2025-10-15T16:00:00Z",
+    "mitre_technique_id": "T1595",
+    "mitre_tactic": "Reconnaissance",
+    "description": "Connection to an ASN rarely contacted by this entity, potentially indicating anomalous behavior or C2 infrastructure",
+    "updated_at": "2025-10-15T16:00:00Z"
+  }
+]

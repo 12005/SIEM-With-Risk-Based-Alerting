@@ -1,0 +1,17 @@
+paths:
+  pcap_dir: pcap
+  zeek_log_dir: zeek-logs
+  suricata_log_dir: suricata-logs
+  normalized_dir: normalized-logs
+  observations_dir: observations
+  enriched_dir: enriched-observations
+  reports_dir: reports
+  asset_inventory_file: "asset_inventory.csv"
+dashboard:
+  open_browser: false
+  host: 127.0.0.1
+  port: 5000
+geoip:
+  city_db: "GeoLite2-City.mmdb"
+  asn_db: "GeoLite2-ASN.mmdb"
+ 

@@ -1,0 +1,29 @@
+{
+  "high_risk_countries": [
+    "North Korea",
+    "Iran",
+    "Syria",
+    "Russia",
+    "China",
+    "Cuba",
+    "Sudan",
+    "Venezuela"
+  ],
+  "high_risk_asn": [
+    "197988",
+    "398705",
+    "201011"
+  ],
+  "country_risk_multiplier": 1.5,
+  "high_risk_asn_multiplier": 1.4,
+  "new_country_multiplier": 1.3,
+  "rare_asn_multiplier": 1.2,
+  "comments": {
+    "high_risk_countries": "Countries considered high-risk for security purposes",
+    "high_risk_asn": "ASNs associated with known malicious infrastructure (add as needed)",
+    "country_risk_multiplier": "Multiply risk score by this when connecting to high-risk country",
+    "high_risk_asn_multiplier": "Multiply risk score by this when connecting to high-risk ASN",
+    "new_country_multiplier": "Multiply risk when entity connects to a new country for first time",
+    "rare_asn_multiplier": "Multiply risk when connecting to a rarely-used ASN"
+  }
+}

@@ -1,0 +1,420 @@
+{
+  "T1595": {
+    "name": "Active Scanning",
+    "tactic": "Reconnaissance",
+    "description": "Adversaries may execute active reconnaissance scans to gather information that can be used during targeting.",
+    "mitigations": [
+      "Implement network intrusion detection systems",
+      "Monitor for unusual scanning activity",
+      "Block unnecessary ports and protocols"
+    ],
+    "detection_methods": [
+      "Monitor network traffic for scanning patterns",
+      "Analyze firewall logs for repeated connection attempts"
+    ],
+    "severity": "MEDIUM",
+    "next_possible_attacks": [
+      {"id": "T1190", "name": "Exploit Public-Facing Application", "tactic": "Initial Access"},
+      {"id": "T1133", "name": "External Remote Services", "tactic": "Initial Access"}
+    ]
+  },
+  "T1595.001": {
+    "name": "Active Scanning: Scanning IP Blocks",
+    "tactic": "Reconnaissance",
+    "description": "Adversaries may scan victim IP blocks to gather information for targeting.",
+    "mitigations": [
+      "Deploy intrusion detection systems to detect port scans",
+      "Use rate-limiting on exposed services",
+      "Configure firewalls to block scanning IPs"
+    ],
+    "detection_methods": [
+      "Monitor for high-volume connection refusals",
+      "Analyze network flows for IP sweep patterns"
+    ],
+    "severity": "MEDIUM",
+    "next_possible_attacks": [
+      {"id": "T1190", "name": "Exploit Public-Facing Application", "tactic": "Initial Access"}
+    ]
+  },
+  "T1595.002": {
+    "name": "Active Scanning: Vulnerability Scanning",
+    "tactic": "Reconnaissance",
+    "description": "Adversaries may scan for vulnerabilities in public-facing systems to identify exploitable weaknesses.",
+    "mitigations": [
+      "Apply security patches promptly",
+      "Use web application firewalls",
+      "Conduct regular vulnerability assessments"
+    ],
+    "detection_methods": [
+      "Monitor for known scanning tool signatures (e.g., nmap, nikto)",
+      "Analyze HTTP logs for vulnerability scan patterns"
+    ],
+    "severity": "HIGH",
+    "next_possible_attacks": [
+      {"id": "T1190", "name": "Exploit Public-Facing Application", "tactic": "Initial Access"}
+    ]
+  },
+  "T1589": {
+    "name": "Gather Victim Network Information",
+    "tactic": "Reconnaissance",
+    "description": "Adversaries may gather information about the victim's network, such as DNS details or network topology.",
+    "mitigations": [
+      "Restrict DNS zone transfers",
+      "Implement DNS security measures",
+      "Monitor for unauthorized DNS queries"
+    ],
+    "detection_methods": [
+      "Monitor DNS logs for AXFR attempts",
+      "Use DNS query logging to detect reconnaissance"
+    ],
+    "severity": "MEDIUM",
+    "next_possible_attacks": [
+      {"id": "T1071.004", "name": "Application Layer Protocol: DNS", "tactic": "Command and Control"}
+    ]
+  },
+  "T1078": {
+    "name": "Valid Accounts",
+    "tactic": "Initial Access",
+    "description": "Adversaries may obtain and abuse valid accounts to gain initial access, persistence, or privilege escalation.",
+    "mitigations": [
+      "Implement multi-factor authentication",
+      "Monitor for unusual login activity",
+      "Enforce strong password policies"
+    ],
+    "detection_methods": [
+      "Monitor authentication logs for unusual patterns",
+      "Use SIEM to detect account misuse"
+    ],
+    "severity": "HIGH",
+    "next_possible_attacks": [
+      {"id": "T1071", "name": "Application Layer Protocol", "tactic": "Command and Control"},
+      {"id": "T1110", "name": "Brute Force", "tactic": "Credential Access"}
+    ]
+  },
+  "T1078.001": {
+    "name": "Valid Accounts: Default Accounts",
+    "tactic": "Initial Access",
+    "description": "Adversaries may obtain and abuse credentials of a default account as a means to gain Initial Access, Persistence, Privilege Escalation, or Defense Evasion.",
+    "mitigations": [
+      "Ensure default accounts are disabled or have strong passwords",
+      "Implement account lockout policies",
+      "Monitor for unusual login attempts"
+    ],
+    "detection_methods": [
+      "Monitor authentication logs for default account usage",
+      "Use SIEM to detect repeated failed logins"
+    ],
+    "severity": "CRITICAL",
+    "next_possible_attacks": [
+      {"id": "T1071", "name": "Application Layer Protocol", "tactic": "Command and Control"},
+      {"id": "T1110", "name": "Brute Force", "tactic": "Credential Access"}
+    ]
+  },
+  "T1110.001": {
+    "name": "Brute Force: Password Guessing",
+    "tactic": "Credential Access",
+    "description": "Adversaries may use password guessing to attempt to access accounts.",
+    "mitigations": [
+      "Implement account lockout after failed attempts",
+      "Use strong, complex passwords",
+      "Enable multi-factor authentication"
+    ],
+    "detection_methods": [
+      "Monitor for multiple failed login attempts",
+      "Analyze authentication logs for brute force patterns"
+    ],
+    "severity": "HIGH",
+    "next_possible_attacks": [
+      {"id": "T1078", "name": "Valid Accounts", "tactic": "Initial Access"}
+    ]
+  },
+  "T1133": {
+    "name": "External Remote Services",
+    "tactic": "Initial Access",
+    "description": "Adversaries may leverage external-facing remote services (e.g., RDP, VPN) to gain initial access.",
+    "mitigations": [
+      "Restrict RDP access to specific IPs",
+      "Use strong authentication for remote services",
+      "Monitor remote service logs"
+    ],
+    "detection_methods": [
+      "Monitor RDP and VPN logs for unusual access",
+      "Use network monitoring for suspicious connections"
+    ],
+    "severity": "HIGH",
+    "next_possible_attacks": [
+      {"id": "T1078", "name": "Valid Accounts", "tactic": "Initial Access"}
+    ]
+  },
+  "T1204.002": {
+    "name": "User Execution: Malicious File",
+    "tactic": "Execution",
+    "description": "Adversaries may rely on user execution of malicious files to achieve code execution.",
+    "mitigations": [
+      "Implement endpoint protection to block malicious files",
+      "Educate users on safe file handling",
+      "Use application whitelisting"
+    ],
+    "detection_methods": [
+      "Monitor for execution of suspicious file types",
+      "Analyze endpoint logs for malicious file execution"
+    ],
+    "severity": "HIGH",
+    "next_possible_attacks": [
+      {"id": "T1105", "name": "Ingress Tool Transfer", "tactic": "Command and Control"}
+    ]
+  },
+  "T1021.002": {
+    "name": "Remote Services: SMB/Windows Admin Shares",
+    "tactic": "Lateral Movement",
+    "description": "Adversaries may use SMB or Windows Admin Shares for lateral movement within a network.",
+    "mitigations": [
+      "Disable unnecessary admin shares",
+      "Restrict SMB access to trusted IPs",
+      "Monitor SMB traffic for anomalies"
+    ],
+    "detection_methods": [
+      "Monitor SMB logs for unauthorized access",
+      "Use IDS to detect suspicious SMB activity"
+    ],
+    "severity": "HIGH",
+    "next_possible_attacks": [
+      {"id": "T1078", "name": "Valid Accounts", "tactic": "Initial Access"}
+    ]
+  },
+  "T1105": {
+    "name": "Ingress Tool Transfer",
+    "tactic": "Command and Control",
+    "description": "Adversaries may transfer tools or other files to a victim system to enable further malicious activity.",
+    "mitigations": [
+      "Monitor network traffic for suspicious file transfers",
+      "Use endpoint detection to block known malicious files",
+      "Implement network segmentation"
+    ],
+    "detection_methods": [
+      "Analyze HTTP/SMB logs for suspicious file downloads",
+      "Use EDR to detect tool execution"
+    ],
+    "severity": "HIGH",
+    "next_possible_attacks": [
+      {"id": "T1204.002", "name": "User Execution: Malicious File", "tactic": "Execution"}
+    ]
+  },
+  "T1566.001": {
+    "name": "Phishing: Spearphishing Attachment",
+    "tactic": "Initial Access",
+    "description": "Adversaries may send spearphishing emails with malicious attachments to gain initial access.",
+    "mitigations": [
+      "Implement email filtering to block malicious attachments",
+      "Educate users on phishing awareness",
+      "Use antivirus to scan email attachments"
+    ],
+    "detection_methods": [
+      "Monitor email logs for suspicious attachments",
+      "Analyze network traffic for malicious file downloads"
+    ],
+    "severity": "HIGH",
+    "next_possible_attacks": [
+      {"id": "T1204.002", "name": "User Execution: Malicious File", "tactic": "Execution"}
+    ]
+  },
+  "T1550.002": {
+    "name": "Use Alternate Authentication Material: Pass the Hash",
+    "tactic": "Lateral Movement",
+    "description": "Adversaries may use stolen NTLM hashes to authenticate to other systems.",
+    "mitigations": [
+      "Restrict NTLM authentication",
+      "Monitor for pass-the-hash activity",
+      "Implement credential guard"
+    ],
+    "detection_methods": [
+      "Monitor NTLM authentication logs",
+      "Use SIEM to detect hash-based authentication"
+    ],
+    "severity": "CRITICAL",
+    "next_possible_attacks": [
+      {"id": "T1021.002", "name": "Remote Services: SMB/Windows Admin Shares", "tactic": "Lateral Movement"}
+    ]
+  },
+  "T1027.004": {
+    "name": "Obfuscated Files or Information: Compile After Delivery",
+    "tactic": "Defense Evasion",
+    "description": "Adversaries may attempt to make payloads difficult to analyze by delivering files that require compilation.",
+    "mitigations": [
+      "Monitor for suspicious compilation activity",
+      "Use endpoint protection to detect obfuscated files",
+      "Implement application whitelisting"
+    ],
+    "detection_methods": [
+      "Analyze HTTP logs for obfuscated payloads",
+      "Use EDR to detect compilation processes"
+    ],
+    "severity": "HIGH",
+    "next_possible_attacks": [
+      {"id": "T1204.002", "name": "User Execution: Malicious File", "tactic": "Execution"}
+    ]
+  },
+  "T1071": {
+    "name": "Application Layer Protocol",
+    "tactic": "Command and Control",
+    "description": "Adversaries may communicate using application layer protocols to avoid detection/network filtering.",
+    "mitigations": [
+      "Implement application layer protocol inspection",
+      "Use network intrusion detection systems",
+      "Restrict unnecessary outbound traffic"
+    ],
+    "detection_methods": [
+      "Monitor for unusual application layer protocol traffic",
+      "Analyze network flows for anomalies"
+    ],
+    "severity": "HIGH",
+    "next_possible_attacks": [
+      {"id": "T1041", "name": "Exfiltration Over C2 Channel", "tactic": "Exfiltration"},
+      {"id": "T1573", "name": "Encrypted Channel", "tactic": "Command and Control"}
+    ]
+  },
+  "T1071.001": {
+    "name": "Application Layer Protocol: Web Protocols",
+    "tactic": "Command and Control",
+    "description": "Adversaries may use web protocols (e.g., HTTP/HTTPS) for command and control, possibly with outdated user-agents.",
+    "mitigations": [
+      "Monitor HTTP/HTTPS traffic for suspicious user-agents",
+      "Enforce modern TLS versions",
+      "Block known malicious domains"
+    ],
+    "detection_methods": [
+      "Inspect HTTP headers for outdated or suspicious user-agents",
+      "Use IDS/IPS for web protocol anomalies"
+    ],
+    "severity": "HIGH",
+    "next_possible_attacks": [
+      {"id": "T1105", "name": "Ingress Tool Transfer", "tactic": "Command and Control"}
+    ]
+  },
+  "T1071.003": {
+    "name": "Application Layer Protocol: Mail Protocols",
+    "tactic": "Command and Control",
+    "description": "Adversaries may use mail protocols (e.g., IRC) for command and control.",
+    "mitigations": [
+      "Monitor mail protocol traffic",
+      "Block unauthorized IRC servers",
+      "Implement network segmentation"
+    ],
+    "detection_methods": [
+      "Analyze IRC traffic for anomalies",
+      "Use SIEM to detect C2 communication"
+    ],
+    "severity": "HIGH",
+    "next_possible_attacks": [
+      {"id": "T1041", "name": "Exfiltration Over C2 Channel", "tactic": "Exfiltration"}
+    ]
+  },
+  "T1071.004": {
+    "name": "Application Layer Protocol: DNS",
+    "tactic": "Command and Control",
+    "description": "Adversaries may use DNS for command and control, including DNS tunneling.",
+    "mitigations": [
+      "Monitor DNS queries for unusual patterns",
+      "Implement DNS query logging",
+      "Block known malicious DNS servers"
+    ],
+    "detection_methods": [
+      "Analyze DNS query lengths and frequencies",
+      "Use DNS security solutions"
+    ],
+    "severity": "HIGH",
+    "next_possible_attacks": [
+      {"id": "T1041", "name": "Exfiltration Over C2 Channel", "tactic": "Exfiltration"}
+    ]
+  },
+  "T1562.001": {
+    "name": "Impair Defenses: Disable or Modify Tools",
+    "tactic": "Defense Evasion",
+    "description": "Adversaries may disable or modify security tools to avoid detection.",
+    "mitigations": [
+      "Monitor for changes to security tools",
+      "Use tamper protection for EDR solutions",
+      "Implement logging for tool configuration changes"
+    ],
+    "detection_methods": [
+      "Monitor EDR logs for disablement attempts",
+      "Analyze system logs for unauthorized changes"
+    ],
+    "severity": "CRITICAL",
+    "next_possible_attacks": [
+      {"id": "T1070", "name": "Indicator Removal on Host", "tactic": "Defense Evasion"}
+    ]
+  },
+  "T1573": {
+    "name": "Encrypted Channel",
+    "tactic": "Command and Control",
+    "description": "Adversaries may use encrypted channels (e.g., self-signed SSL/TLS) for command and control.",
+    "mitigations": [
+      "Monitor for self-signed certificates",
+      "Enforce trusted CA certificates",
+      "Inspect encrypted traffic metadata"
+    ],
+    "detection_methods": [
+      "Analyze SSL/TLS logs for self-signed certificates",
+      "Use network monitoring for encrypted C2"
+    ],
+    "severity": "HIGH",
+    "next_possible_attacks": [
+      {"id": "T1041", "name": "Exfiltration Over C2 Channel", "tactic": "Exfiltration"}
+    ]
+  },
+  "T1190": {
+    "name": "Exploit Public-Facing Application",
+    "tactic": "Initial Access",
+    "description": "Adversaries may attempt to exploit vulnerabilities in internet-facing applications.",
+    "mitigations": [
+      "Apply security patches promptly",
+      "Use web application firewalls",
+      "Conduct regular vulnerability scans"
+    ],
+    "detection_methods": [
+      "Monitor for SQL injection patterns",
+      "Use WAF logs to detect exploit attempts"
+    ],
+    "severity": "CRITICAL",
+    "next_possible_attacks": [
+      {"id": "T1204.002", "name": "User Execution: Malicious File", "tactic": "Execution"}
+    ]
+  },
+  "T1485": {
+    "name": "Data Destruction",
+    "tactic": "Impact",
+    "description": "Adversaries may destroy data to disrupt operations or cover their tracks.",
+    "mitigations": [
+      "Implement robust backups",
+      "Monitor for unauthorized data deletion",
+      "Use access controls on critical data"
+    ],
+    "detection_methods": [
+      "Monitor database logs for DROP/DELETE commands",
+      "Use SIEM to detect data destruction patterns"
+    ],
+    "severity": "CRITICAL",
+    "next_possible_attacks": [
+      {"id": "T1491", "name": "Defacement", "tactic": "Impact"}
+    ]
+  },
+  "T1210": {
+    "name": "Exploitation of Remote Services",
+    "tactic": "Exploitation of Remote Services",
+    "description": "Adversaries may exploit remote services to gain unauthorized access or move laterally.",
+    "mitigations": [
+      "Patch remote service vulnerabilities",
+      "Restrict access to RPC services",
+      "Monitor remote service logs"
+    ],
+    "detection_methods": [
+      "Analyze RPC logs for exploit attempts",
+      "Use IDS to detect service exploitation"
+    ],
+    "severity": "CRITICAL",
+    "next_possible_attacks": [
+      {"id": "T1021.002", "name": "Remote Services: SMB/Windows Admin Shares", "tactic": "Lateral Movement"}
+    ]
+  }
+}

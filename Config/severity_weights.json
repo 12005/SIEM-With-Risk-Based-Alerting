@@ -1,0 +1,8 @@
+{
+  "Behavioral Anomaly: Rare Port Connection": 0.2,
+  "Command & Control: Suspicious Beaconing": 1.5,
+  "Defense Evasion: Connection to High Ephemeral Port": 0.7,
+  "Defense Evasion: Outdated & Suspicious User-Agent (IE6)": 1,
+  "Impact: Potential SQL Injection Attempt": 1.4,
+  "Initial Access: MySQL Root Login Attempt": 1.3
+}
