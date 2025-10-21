@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+{% block title %}Detailed Analysis - SIEM{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <!-- IP Search -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">
+            <i class="fas fa-search"></i> Entity Analysis
+        </h2>
+        <div class="flex gap-4">
+            <input type="text" id="ipSearch" placeholder="Enter IP address (e.g., 192.168.1.1)" 
+                   class="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+            <button onclick="analyzeIP()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <i class="fas fa-search"></i> Analyze
+            </button>
+        </div>
+    </div>
+
+    <!-- Analysis Results -->
+    <div id="analysisResults" class="hidden space-y-6">
+        <!-- Entity Overview -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-bold text-gray-800" id="entityIP"></h2>
+                <span id="riskBadge" class="px-4 py-2 rounded-lg text-white font-bold"></span>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div>
+                    <p class="text-sm text-gray-600">Hostname</p>
+                    <p class="font-semibold" id="entityHostname">-</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Business Unit</p>
+                    <p class="font-semibold" id="entityBU">-</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Criticality</p>
+                    <p class="font-semibold" id="entityCriticality">-</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Total Risk Score</p>
+                    <p class="font-semibold text-2xl text-red-600" id="entityScore">-</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Observations</p>
+                    <p class="font-semibold text-2xl" id="entityObsCount">-</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Attack Chain -->
+        
+
+        <!-- All Observed Attacks -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-semibold mb-4">
+                <i class="fas fa-history text-blue-600"></i> All Observed Attacks
+            </h3>
+            <div id="allAttacks" class="space-y-4">
+                <p class="text-sm text-gray-600">No attacks recorded</p>
+            </div>
+        </div>
+
+        <!-- Next Possible Attacks -->
+        <div class="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg shadow p-6 border-2 border-red-200">
+            <h3 class="text-xl font-semibold mb-4 text-red-700">
+                <i class="fas fa-exclamation-circle"></i> Predicted Next Attack Steps
+            </h3>
+            <p class="text-sm text-gray-700 mb-4">Based on current observations, these attacks are likely to follow:</p>
+            <div id="nextAttacks" class="space-y-3"></div>
+        </div>
+
+        <!-- Recommended Mitigations -->
+        <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg shadow p-6 border-2 border-green-200">
+            <h3 class="text-xl font-semibold mb-4 text-green-700">
+                <i class="fas fa-shield-alt"></i> Recommended Mitigations
+            </h3>
+            <div id="mitigations" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- Error Message -->
+    <div id="errorMessage" class="hidden bg-red-50 border border-red-200 rounded-lg p-4 text-red-700"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function analyzeIP() {
+    const ip = document.getElementById('ipSearch').value.trim();
+    if (!ip) {
+        showError('Please enter an IP address');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/analysis/ip/${encodeURIComponent(ip)}`);
+        if (!response.ok) {
+            const error = await response.json();
+            showError(error.error || 'Failed to load analysis');
+            return;
+        }
+
+        const data = await response.json();
+        displayAnalysis(data);
+    } catch (error) {
+        showError('Error loading analysis: ' + error.message);
+    }
+}
+
+function displayAnalysis(data) {
+    document.getElementById('analysisResults').classList.remove('hidden');
+    document.getElementById('errorMessage').classList.add('hidden');
+
+    // Entity overview
+    document.getElementById('entityIP').textContent = data.ip;
+    document.getElementById('entityHostname').textContent = data.asset.hostname || '—';
+    document.getElementById('entityBU').textContent = data.asset.business_unit || '—';
+    document.getElementById('entityCriticality').textContent = (data.asset.criticality || 'unknown').charAt(0).toUpperCase() + (data.asset.criticality || 'unknown').slice(1);
+    document.getElementById('entityScore').textContent = data.total_score.toFixed(2);
+    document.getElementById('entityObsCount').textContent = data.observation_count;
+
+    // Risk badge
+    const riskBadge = document.getElementById('riskBadge');
+    const riskLevel = data.risk_level;
+    riskBadge.textContent = riskLevel;
+    riskBadge.className = `px-4 py-2 rounded-lg text-white font-bold ${
+        riskLevel === 'CRITICAL' ? 'severity-critical' :
+        riskLevel === 'HIGH' ? 'severity-high' :
+        'severity-medium'
+    }`;
+
+    // Helper function to render attack details
+    function renderAttack(attack) {
+        const severityColor = {
+            'CRITICAL': 'border-red-500 bg-red-50',
+            'HIGH': 'border-orange-500 bg-orange-50',
+            'MEDIUM': 'border-yellow-500 bg-yellow-50',
+            'LOW': 'border-green-500 bg-green-50'
+        }[attack.severity] || 'border-gray-500 bg-gray-50';
+
+        return `
+            <div class="border-l-4 ${severityColor} p-4 rounded-r">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-xs font-mono bg-gray-200 px-2 py-1 rounded">${attack.technique_id}</span>
+                            <h4 class="font-semibold">${attack.technique_name || attack.observation_name}</h4>
+                            <span class="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">${attack.tactic}</span>
+                            <span class="text-xs font-bold">${attack.severity}</span>
+                        </div>
+                        <p class="text-sm text-gray-700 mb-2">${attack.description || 'No description available'}</p>
+                        <div class="text-xs text-gray-600 mb-2">
+                            <strong>Detected ${attack.count}x</strong> |
+                            Final Score: <strong class="text-red-600">${attack.breakdown.final_score}</strong>
+                        </div>
+                        
+                        <!-- Score Breakdown -->
+                        <details class="text-sm bg-white p-3 rounded border mt-2">
+                            <summary class="cursor-pointer font-semibold text-blue-600">
+                                <i class="fas fa-calculator"></i> View Score Calculation
+                            </summary>
+                            <div class="mt-3 space-y-2">
+                                <div class="flex justify-between">
+                                    <span>Base Risk Score:</span>
+                                    <strong>${attack.breakdown.base_score}</strong>
+                                </div>
+                                <div class="flex justify-between text-gray-600">
+                                    <span>× Impact Multiplier:</span>
+                                    <strong>${attack.breakdown.impact_multiplier}</strong>
+                                </div>
+                                <div class="flex justify-between text-gray-600">
+                                    <span>× Vulnerability Multiplier:</span>
+                                    <strong>${attack.breakdown.vulnerability_multiplier}</strong>
+                                </div>
+                                <div class="flex justify-between border-t pt-2">
+                                    <span>After Asset Modifiers:</span>
+                                    <strong>${attack.breakdown.after_modifiers}</strong>
+                                </div>
+                                <div class="flex justify-between text-gray-600">
+                                    <span>× Severity Weight:</span>
+                                    <strong>${attack.breakdown.severity_weight}</strong>
+                                </div>
+                                <div class="flex justify-between border-t pt-2">
+                                    <span>After Severity Weight:</span>
+                                    <strong>${attack.breakdown.after_weight}</strong>
+                                </div>
+                                ${attack.breakdown.geoip_factors.length > 0 ? `
+                                    <div class="text-gray-600">
+                                        <div>GeoIP Factors:</div>
+                                        <ul class="ml-4 text-xs">
+                                            ${attack.breakdown.geoip_factors.map(f => `<li>• ${f}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                    <div class="flex justify-between border-t pt-2">
+                                        <span>After GeoIP (×${attack.breakdown.geoip_multiplier}):</span>
+                                        <strong>${attack.breakdown.after_geoip}</strong>
+                                    </div>
+                                ` : ''}
+                                <div class="flex justify-between text-gray-600">
+                                    <span>× Log Scaling (${attack.count} occurrences):</span>
+                                    <strong>${attack.breakdown.log_scaling_factor}</strong>
+                                </div>
+                                <div class="flex justify-between border-t-2 pt-2 text-lg">
+                                    <span>Final Risk Score:</span>
+                                    <strong class="text-red-600">${attack.breakdown.final_score}</strong>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Detection Methods -->
+                        <details class="text-sm bg-blue-50 p-3 rounded border mt-2">
+                            <summary class="cursor-pointer font-semibold text-blue-600">
+                                <i class="fas fa-eye"></i> Detection Methods
+                            </summary>
+                            <ul class="mt-2 ml-4 space-y-1">
+                                ${attack.detection_methods.map(method => `<li class="text-xs">• ${method}</li>`).join('')}
+                            </ul>
+                        </details>
+
+                        <!-- Mitigations -->
+                        <details class="text-sm bg-green-50 p-3 rounded border mt-2">
+                            <summary class="cursor-pointer font-semibold text-green-600">
+                                <i class="fas fa-shield-alt"></i> Specific Mitigations
+                            </summary>
+                            <ul class="mt-2 ml-4 space-y-1">
+                                ${attack.mitigations.map(mitigation => {
+                                    const isUrgent = mitigation.includes('IMMEDIATE') || mitigation.includes('URGENT') || mitigation.includes('CRITICAL') || mitigation.includes('EMERGENCY');
+                                    return `<li class="text-xs ${isUrgent ? 'font-bold text-red-600' : ''}">• ${mitigation}</li>`;
+                                }).join('')}
+                            </ul>
+                        </details>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Current Attack Chain
+    
+
+    // All Observed Attacks
+    const allAttacks = document.getElementById('allAttacks');
+    if (data.all_attacks.length === 0) {
+        allAttacks.innerHTML = '<p class="text-sm text-gray-600">No attacks recorded</p>';
+    } else {
+        allAttacks.innerHTML = data.all_attacks.map(attack => renderAttack(attack)).join('');
+    }
+
+    // Next possible attacks
+    const nextAttacks = document.getElementById('nextAttacks');
+    if (data.next_possible_attacks.length === 0) {
+        nextAttacks.innerHTML = '<p class="text-sm text-gray-600">No immediate follow-up attacks predicted</p>';
+    } else {
+        nextAttacks.innerHTML = data.next_possible_attacks.map(attack => {
+            const probColor = {
+                'HIGH': 'bg-red-100 text-red-800 border-red-300',
+                'MEDIUM': 'bg-orange-100 text-orange-800 border-orange-300',
+                'LOW': 'bg-yellow-100 text-yellow-800 border-yellow-300'
+            }[attack.probability] || 'bg-gray-100 text-gray-800';
+
+            const severityBadge = attack.severity ? `
+                <span class="text-xs px-2 py-1 rounded font-bold ${
+                    attack.severity === 'CRITICAL' ? 'bg-red-600 text-white' :
+                    attack.severity === 'HIGH' ? 'bg-orange-600 text-white' :
+                    'bg-yellow-600 text-white'
+                }">${attack.severity}</span>
+            ` : '';
+
+            return `
+                <div class="border-2 rounded-lg p-4 ${probColor}">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-xs font-mono bg-white px-2 py-1 rounded shadow-sm">${attack.id}</span>
+                                <h4 class="font-semibold">${attack.name || attack.id}</h4>
+                                ${severityBadge}
+                            </div>
+                            <p class="text-sm mb-2">${attack.description || 'No description available'}</p>
+                            <div class="text-xs">
+                                <strong>Probability: ${attack.probability}</strong> 
+                                (Indicated by ${attack.count} current technique${attack.count > 1 ? 's' : ''})
+                            </div>
+                        </div>
+                    </div>
+                    ${attack.mitigations && attack.mitigations.length > 0 ? `
+                        <details class="mt-2 text-sm">
+                            <summary class="cursor-pointer font-semibold">Preventive Mitigations</summary>
+                            <ul class="mt-2 ml-4 space-y-1">
+                                ${attack.mitigations.slice(0, 5).map(m => `<li class="text-xs">• ${m}</li>`).join('')}
+                            </ul>
+                        </details>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Recommended mitigations
+    const mitigations = document.getElementById('mitigations');
+    mitigations.innerHTML = data.recommended_mitigations.map((mitigation, index) => {
+        const isUrgent = mitigation.includes('IMMEDIATE') || mitigation.includes('URGENT') || mitigation.includes('CRITICAL') || mitigation.includes('EMERGENCY');
+        return `
+            <div class="flex items-start gap-3 ${isUrgent ? 'bg-red-100 border-l-4 border-red-500 pl-3 py-2' : ''}">
+                <i class="fas fa-check-circle text-green-600 mt-1"></i>
+                <span class="${isUrgent ? 'font-bold text-red-700' : ''}">${mitigation}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function showError(message) {
+    document.getElementById('analysisResults').classList.add('hidden');
+    const errorDiv = document.getElementById('errorMessage');
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('hidden');
+}
+
+// Check for IP in URL params
+document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const ip = params.get('ip');
+    if (ip) {
+        document.getElementById('ipSearch').value = ip;
+        analyzeIP();
+    }
+});
+</script>
+{% endblock %}

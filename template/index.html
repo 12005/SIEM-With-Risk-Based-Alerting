@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - SIEM{% endblock %}
+{% block content %}
+<style>
+  .kpi-card { 
+    background: white; 
+    border-radius: 0.75rem; 
+    padding: 1.5rem; 
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); 
+  }
+  .table-row-clickable { cursor: pointer; transition: background-color 0.2s; }
+  .table-row-clickable:hover { background-color: #f9fafb; }
+  .details-row { display: none; background-color: #f9fafb; }
+  .chart-container { position: relative; height: 40vh; width: 100%; }
+</style>
+
+<div class="space-y-6">
+  <!-- Report Timestamp -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-sm font-medium text-blue-800">
+          <i class="fas fa-clock"></i> Report Generated
+        </p>
+        <p id="report-timestamp" class="text-lg font-semibold text-blue-900 mt-1">Loading...</p>
+      </div>
+      <div class="text-right">
+        <p class="text-sm font-medium text-blue-800">Report Age</p>
+        <p id="report-age" class="text-lg font-semibold text-blue-900 mt-1">-</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div class="kpi-card text-center">
+      <h3 class="text-lg font-medium text-gray-500">High-Risk Entities</h3>
+      <p id="kpi-high-risk-entities" class="text-5xl font-bold text-red-600 mt-2">0</p>
+    </div>
+    <div class="kpi-card text-center">
+      <h3 class="text-lg font-medium text-gray-500">Total Observations</h3>
+      <p id="kpi-total-observations" class="text-5xl font-bold text-yellow-600 mt-2">0</p>
+    </div>
+    <div class="kpi-card text-center">
+      <h3 class="text-lg font-medium text-gray-500">Avg Risk Score</h3>
+      <p id="kpi-avg-score" class="text-5xl font-bold text-blue-600 mt-2">0</p>
+    </div>
+    <div class="kpi-card text-center">
+      <h3 class="text-lg font-medium text-gray-500">Critical Alerts</h3>
+      <p id="kpi-critical-count" class="text-5xl font-bold text-orange-600 mt-2">0</p>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-chart-bar text-red-500"></i> Top 5 Risky Entities
+      </h3>
+      <div class="chart-container">
+        <canvas id="topRiskyEntitiesChart"></canvas>
+      </div>
+    </div>
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <h3 class="text-xl font-semibold mb-4">
+        <i class="fas fa-bullseye text-purple-500"></i> MITRE ATT&CK Tactic Breakdown
+      </h3>
+      <div class="chart-container">
+        <canvas id="mitreTacticsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Entity Table -->
+  <div class="bg-white rounded-lg shadow-md">
+    <div class="p-6 border-b">
+      <h3 class="text-xl font-semibold text-gray-800">
+        <i class="fas fa-server text-red-500"></i> High-Risk Entity Details
+      </h3>
+      <p class="text-sm text-gray-600 mt-1">Click on any row to view contributing observations</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hostname</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Criticality</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Risk</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Obs Count</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="entitiesTableBody" class="bg-white divide-y divide-gray-200">
+          <tr>
+            <td colspan="8" class="px-6 py-4 text-center text-gray-500">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Placeholder -->
+<div id="placeholder" class="hidden text-center py-20 bg-white rounded-lg shadow">
+  <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+  <h2 id="placeholder-title" class="text-2xl font-semibold text-gray-700">Loading latest risk report...</h2>
+  <p id="placeholder-text" class="text-gray-500 mt-2">Please wait.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let topRiskyEntitiesChart, mitreTacticsChart;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const reportOk = await loadMetadata();
+  const entitiesOk = await loadEntities();
+  
+  if (!reportOk || !entitiesOk) {
+    // Error already handled in respective functions
+  }
+});
+
+async function loadMetadata() {
+  try {
+    const res = await fetch('/api/report');
+    if (!res.ok) throw new Error('no report');
+    const report = await res.json();
+
+    const ts = new Date(report.report_generated_utc);
+    document.getElementById('report-timestamp').textContent = ts.toLocaleString();
+    
+    const mins = Math.max(0, Math.round((Date.now() - ts.getTime()) / 60000));
+    document.getElementById('report-age').textContent = `${mins} minute${mins !== 1 ? 's' : ''} ago`;
+
+    return true;
+  } catch (e) {
+    console.warn('metadata error', e);
+    showPlaceholder("Error Loading Report", "Could not load latest risk report. Check 'reports' directory.");
+    return false;
+  }
+}
+
+async function loadEntities() {
+  try {
+    const res = await fetch('/api/entities');
+    if (!res.ok) throw new Error('entities error');
+    const data = await res.json();
+    const entities = data.entities || [];
+
+    if (entities.length === 0) {
+      showPlaceholder("No High-Risk Entities Found", "No entities crossed the risk threshold. Your network appears secure!");
+      return false;
+    }
+
+    populateDashboard(entities);
+    return true;
+  } catch (e) {
+    console.error('Error loading entities:', e);
+    showPlaceholder("Error Loading Entities", "Could not load entities from API. Check console for details.");
+    return false;
+  }
+}
+
+function showPlaceholder(title, text) {
+  document.querySelector('.space-y-6').classList.add('hidden');
+  document.getElementById('placeholder').classList.remove('hidden');
+  document.getElementById('placeholder-title').textContent = title;
+  document.getElementById('placeholder-text').textContent = text;
+}
+
+function populateDashboard(entities) {
+  // Update KPIs
+  document.getElementById('kpi-high-risk-entities').textContent = entities.length;
+  
+  const totalObs = entities.reduce((sum, e) => sum + (e.observation_count || 0), 0);
+  document.getElementById('kpi-total-observations').textContent = totalObs;
+  
+  const avgScore = entities.length > 0 
+    ? (entities.reduce((sum, e) => sum + (e.total_score || 0), 0) / entities.length).toFixed(2)
+    : '0.00';
+  document.getElementById('kpi-avg-score').textContent = avgScore;
+  
+  const criticalCount = entities.filter(e => (e.total_score || 0) > 500).length;
+  document.getElementById('kpi-critical-count').textContent = criticalCount;
+
+  // Populate Entity Table
+  const tbody = document.getElementById('entitiesTableBody');
+  tbody.innerHTML = '';
+  
+  entities.forEach((entity, idx) => {
+    // Main row
+    const row = document.createElement('tr');
+    row.className = 'table-row-clickable';
+    
+    const riskColor = entity.total_score > 500 ? 'text-red-600' : 
+                     entity.total_score > 200 ? 'text-orange-600' : 'text-yellow-600';
+    
+    // FIX: Better criticality handling
+    let criticality = (entity.criticality || '').toString().trim();
+    
+    // Handle empty, null, undefined, dash, or "unknown" values
+    if (!criticality || criticality === '—' || criticality === '-' || criticality.toLowerCase() === 'unknown') {
+      criticality = 'unknown';
+    } else {
+      criticality = criticality.toLowerCase();
+    }
+    
+    // Display text - capitalize first letter
+    const critDisplay = criticality === 'unknown' ? 'Unknown' : 
+                       criticality.charAt(0).toUpperCase() + criticality.slice(1);
+    
+    // Color coding based on criticality level
+    const critColor = criticality === 'high' || criticality === 'critical' ? 'bg-red-100 text-red-800 border border-red-300' :
+                     criticality === 'medium' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                     criticality === 'low' ? 'bg-green-100 text-green-800 border border-green-300' :
+                     'bg-gray-100 text-gray-600 border border-gray-300'; // Unknown
+    
+    row.innerHTML = `
+      <td class="px-6 py-4 text-sm font-mono">${sanitize(entity.ip)}</td>
+      <td class="px-6 py-4 text-sm">${sanitize(entity.hostname)}</td>
+      <td class="px-6 py-4 text-sm">${sanitize(entity.business_unit)}</td>
+      <td class="px-6 py-4 text-sm">${sanitize(entity.owner)}</td>
+      <td class="px-6 py-4">
+        <span class="px-2 py-1 text-xs font-semibold rounded ${critColor}">
+          ${sanitize(critDisplay)}
+        </span>
+      </td>
+      <td class="px-6 py-4 text-sm font-bold ${riskColor}">${fmt(entity.total_score)}</td>
+      <td class="px-6 py-4 text-sm">${entity.observation_count || 0}</td>
+      <td class="px-6 py-4 text-sm">
+        <a href="/analysis?ip=${encodeURIComponent(entity.ip)}" class="text-blue-600 hover:text-blue-800 font-medium">
+          <i class="fas fa-search-plus"></i> Analyze
+        </a>
+      </td>
+    `;
+
+    // Details row (expandable)
+    const detailsRow = document.createElement('tr');
+    detailsRow.className = 'details-row';
+    detailsRow.id = `details-${idx}`;
+
+    const observations = entity.contributing_observations || [];
+    const sortedObs = observations.sort((a, b) => (b.final_risk_score || 0) - (a.final_risk_score || 0));
+    
+    const obsHtml = sortedObs.length > 0 ? sortedObs.map(obs => `
+      <tr class="border-b hover:bg-gray-50">
+        <td class="px-3 py-2 text-sm">${sanitize(obs.name)}</td>
+        <td class="px-3 py-2 text-sm">${sanitize(obs.tactic)}</td>
+        <td class="px-3 py-2 text-sm">
+          <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">${sanitize(obs.technique)}</span>
+        </td>
+        <td class="px-3 py-2 text-sm font-bold text-red-600">${fmt(obs.final_risk_score)}</td>
+        <td class="px-3 py-2 text-sm text-center">${obs.count || 1}</td>
+      </tr>
+    `).join('') : '<tr><td colspan="5" class="px-3 py-2 text-sm text-gray-500 text-center">No observations</td></tr>';
+
+    detailsRow.innerHTML = `
+      <td colspan="8" class="p-6 bg-gray-50">
+        <div class="bg-white rounded-lg shadow p-4">
+          <h4 class="font-semibold text-lg mb-3 text-gray-800">
+            <i class="fas fa-list-ul text-blue-500"></i> Contributing Observations for ${sanitize(entity.ip)}
+          </h4>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="px-3 py-2 text-left font-medium text-gray-600">Observation Name</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-600">MITRE Tactic</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-600">Technique ID</th>
+                  <th class="px-3 py-2 text-left font-medium text-gray-600">Risk Score</th>
+                  <th class="px-3 py-2 text-center font-medium text-gray-600">Count</th>
+                </tr>
+              </thead>
+              <tbody>${obsHtml}</tbody>
+            </table>
+          </div>
+        </div>
+      </td>
+    `;
+
+    // Toggle details on row click
+    row.addEventListener('click', () => {
+      const dr = document.getElementById(`details-${idx}`);
+      const isVisible = dr.style.display === 'table-row';
+      dr.style.display = isVisible ? 'none' : 'table-row';
+      row.style.backgroundColor = isVisible ? '' : '#f9fafb';
+    });
+
+    tbody.appendChild(row);
+    tbody.appendChild(detailsRow);
+  });
+
+  // Create Charts
+  createTopRiskyEntitiesChart(entities);
+  createMitreTacticsChart(entities);
+}
+
+function createTopRiskyEntitiesChart(entities) {
+  const top5 = entities.slice(0, 5);
+  const ctx = document.getElementById('topRiskyEntitiesChart').getContext('2d');
+  
+  if (topRiskyEntitiesChart) topRiskyEntitiesChart.destroy();
+  
+  topRiskyEntitiesChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: top5.map(e => e.ip),
+      datasets: [{
+        label: 'Total Risk Score',
+        data: top5.map(e => e.total_score || 0),
+        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+        borderColor: 'rgba(220, 38, 38, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `Risk Score: ${context.parsed.y.toFixed(2)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Risk Score' }
+        }
+      }
+    }
+  });
+}
+
+function createMitreTacticsChart(entities) {
+  const tacticCounts = {};
+  
+  entities.forEach(entity => {
+    (entity.contributing_observations || []).forEach(obs => {
+      const tactic = obs.tactic || 'Unknown';
+      tacticCounts[tactic] = (tacticCounts[tactic] || 0) + (obs.count || 1);
+    });
+  });
+
+  const ctx = document.getElementById('mitreTacticsChart').getContext('2d');
+  
+  if (mitreTacticsChart) mitreTacticsChart.destroy();
+  
+  mitreTacticsChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(tacticCounts),
+      datasets: [{
+        data: Object.values(tacticCounts),
+        backgroundColor: [
+          'rgba(239, 68, 68, 0.8)',   // Red
+          'rgba(249, 115, 22, 0.8)',  // Orange
+          'rgba(234, 179, 8, 0.8)',   // Yellow
+          'rgba(34, 197, 94, 0.8)',   // Green
+          'rgba(59, 130, 246, 0.8)',  // Blue
+          'rgba(147, 51, 234, 0.8)',  // Purple
+          'rgba(236, 72, 153, 0.8)',  // Pink
+          'rgba(107, 114, 128, 0.8)'  // Gray
+        ],
+        borderColor: 'white',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { padding: 15, font: { size: 12 } }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.parsed || 0;
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((value / total) * 100).toFixed(1);
+              return `${label}: ${value} (${percentage}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// Helper functions
+function fmt(n) { 
+  return (n == null) ? '0.00' : Number(n).toFixed(2); 
+}
+
+function sanitize(v) { 
+  if (v == null || v === '') return '—';
+  const str = String(v);
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
+{% endblock %}

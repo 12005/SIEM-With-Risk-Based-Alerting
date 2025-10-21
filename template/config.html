@@ -1,0 +1,246 @@
+<!-- 
+=============================================================================
+FILE: templates/config.html
+PURPOSE: Configuration management page
+DESCRIPTION: Allows tuning of severity weights and GeoIP risk settings.
+             Changes are saved to JSON config files and affect risk scoring.
+=============================================================================
+-->
+{% extends "base.html" %}
+{% block title %}Configuration - SIEM{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-2xl font-bold mb-6">
+            <i class="fas fa-cog"></i> System Configuration
+        </h2>
+
+        <!-- Tabs -->
+        <div class="border-b mb-6">
+            <nav class="-mb-px flex space-x-8">
+                <button onclick="switchTab('severity')" id="tab-severity" 
+                        class="config-tab border-b-2 border-blue-500 py-4 px-1 font-medium text-blue-600">
+                    Severity Weights
+                </button>
+                <button onclick="switchTab('geoip')" id="tab-geoip" 
+                        class="config-tab border-b-2 border-transparent py-4 px-1 font-medium text-gray-500 hover:text-gray-700">
+                    GeoIP Risk Config
+                </button>
+            </nav>
+        </div>
+
+        <!-- Severity Weights Tab -->
+        <div id="severity-tab" class="tab-content">
+            <div class="mb-4">
+                <p class="text-gray-600 mb-4">Configure multipliers for specific observation types. Higher values increase risk scores.</p>
+                <button onclick="addSeverityWeight()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    <i class="fas fa-plus"></i> Add Weight
+                </button>
+                <button onclick="saveSeverityWeights()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+            <div id="severityWeights" class="space-y-3"></div>
+        </div>
+
+        <!-- GeoIP Risk Config Tab -->
+        <div id="geoip-tab" class="tab-content hidden">
+            <div class="space-y-6">
+                <div>
+                    <h3 class="font-semibold mb-2">High-Risk Countries</h3>
+                    <p class="text-sm text-gray-600 mb-2">Add countries that should trigger elevated risk scores</p>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="newCountry" placeholder="Country name" 
+                               class="flex-1 px-3 py-2 border rounded">
+                        <button onclick="addCountry()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                    <div id="countryList" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Country Risk Multiplier</label>
+                        <input type="number" id="countryMult" step="0.1" 
+                               class="w-full px-3 py-2 border rounded" placeholder="1.5">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">High Risk ASN Multiplier</label>
+                        <input type="number" id="asnMult" step="0.1" 
+                               class="w-full px-3 py-2 border rounded" placeholder="1.4">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">New Country Multiplier</label>
+                        <input type="number" id="newCountryMult" step="0.1" 
+                               class="w-full px-3 py-2 border rounded" placeholder="1.3">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Rare ASN Multiplier</label>
+                        <input type="number" id="rareAsnMult" step="0.1" 
+                               class="w-full px-3 py-2 border rounded" placeholder="1.2">
+                    </div>
+                </div>
+
+                <button onclick="saveGeoIPConfig()" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    <i class="fas fa-save"></i> Save GeoIP Configuration
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Message -->
+    <div id="statusMessage" class="hidden p-4 rounded-lg"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let severityData = {};
+let geoipData = {};
+
+async function loadConfigs() {
+    try {
+        // Load severity weights
+        const sevResp = await fetch('/api/config/severity');
+        severityData = await sevResp.json();
+        displaySeverityWeights();
+
+        // Load GeoIP config
+        const geoResp = await fetch('/api/config/geoip');
+        geoipData = await geoResp.json();
+        displayGeoIPConfig();
+    } catch (error) {
+        showStatus('Error loading configurations', 'error');
+    }
+}
+
+function displaySeverityWeights() {
+    const container = document.getElementById('severityWeights');
+    container.innerHTML = Object.entries(severityData).map(([name, weight]) => `
+        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded">
+            <input type="text" value="${name}" readonly 
+                   class="flex-1 px-3 py-2 bg-white border rounded text-sm">
+            <input type="number" value="${weight}" step="0.1" data-name="${name}"
+                   onchange="updateWeight('${name}', this.value)"
+                   class="w-24 px-3 py-2 border rounded text-sm">
+            <button onclick="deleteWeight('${name}')" class="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+function addSeverityWeight() {
+    const name = prompt('Enter observation name:');
+    if (name && !severityData[name]) {
+        severityData[name] = 1.0;
+        displaySeverityWeights();
+    }
+}
+
+function updateWeight(name, value) {
+    severityData[name] = parseFloat(value);
+}
+
+function deleteWeight(name) {
+    if (confirm(`Delete weight for "${name}"?`)) {
+        delete severityData[name];
+        displaySeverityWeights();
+    }
+}
+
+async function saveSeverityWeights() {
+    try {
+        const response = await fetch('/api/config/severity', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(severityData)
+        });
+        const result = await response.json();
+        showStatus(result.message, 'success');
+    } catch (error) {
+        showStatus('Error saving severity weights', 'error');
+    }
+}
+
+function displayGeoIPConfig() {
+    // Display countries
+    const countryList = document.getElementById('countryList');
+    const countries = geoipData.high_risk_countries || [];
+    countryList.innerHTML = countries.map(country => `
+        <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm flex items-center gap-2">
+            ${country}
+            <button onclick="removeCountry('${country}')" class="text-red-600 hover:text-red-800">
+                <i class="fas fa-times"></i>
+            </button>
+        </span>
+    `).join('');
+
+    // Display multipliers
+    document.getElementById('countryMult').value = geoipData.country_risk_multiplier || 1.5;
+    document.getElementById('asnMult').value = geoipData.high_risk_asn_multiplier || 1.4;
+    document.getElementById('newCountryMult').value = geoipData.new_country_multiplier || 1.3;
+    document.getElementById('rareAsnMult').value = geoipData.rare_asn_multiplier || 1.2;
+}
+
+function addCountry() {
+    const input = document.getElementById('newCountry');
+    const country = input.value.trim();
+    if (country && !geoipData.high_risk_countries.includes(country)) {
+        geoipData.high_risk_countries.push(country);
+        input.value = '';
+        displayGeoIPConfig();
+    }
+}
+
+function removeCountry(country) {
+    geoipData.high_risk_countries = geoipData.high_risk_countries.filter(c => c !== country);
+    displayGeoIPConfig();
+}
+
+async function saveGeoIPConfig() {
+    // Update values from inputs
+    geoipData.country_risk_multiplier = parseFloat(document.getElementById('countryMult').value);
+    geoipData.high_risk_asn_multiplier = parseFloat(document.getElementById('asnMult').value);
+    geoipData.new_country_multiplier = parseFloat(document.getElementById('newCountryMult').value);
+    geoipData.rare_asn_multiplier = parseFloat(document.getElementById('rareAsnMult').value);
+
+    try {
+        const response = await fetch('/api/config/geoip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(geoipData)
+        });
+        const result = await response.json();
+        showStatus(result.message, 'success');
+    } catch (error) {
+        showStatus('Error saving GeoIP configuration', 'error');
+    }
+}
+
+function switchTab(tab) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.config-tab').forEach(el => {
+        el.classList.remove('border-blue-500', 'text-blue-600');
+        el.classList.add('border-transparent', 'text-gray-500');
+    });
+
+    // Show selected tab
+    document.getElementById(`${tab}-tab`).classList.remove('hidden');
+    document.getElementById(`tab-${tab}`).classList.add('border-blue-500', 'text-blue-600');
+    document.getElementById(`tab-${tab}`).classList.remove('border-transparent', 'text-gray-500');
+}
+
+function showStatus(message, type) {
+    const statusDiv = document.getElementById('statusMessage');
+    statusDiv.textContent = message;
+    statusDiv.className = `p-4 rounded-lg ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+    statusDiv.classList.remove('hidden');
+    setTimeout(() => statusDiv.classList.add('hidden'), 3000);
+}
+
+document.addEventListener('DOMContentLoaded', loadConfigs);
+</script>
+{% endblock %}

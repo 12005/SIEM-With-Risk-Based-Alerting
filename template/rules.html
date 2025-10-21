@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+{% block title %}Correlation Rules - SIEM{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold">
+                <i class="fas fa-code-branch"></i> Correlation Rules
+            </h2>
+            <button onclick="openRuleEditor()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <i class="fas fa-plus"></i> Create New Rule
+            </button>
+        </div>
+
+        <!-- Rules List -->
+        <div id="rulesList" class="space-y-4">
+            <p class="text-gray-500 text-center py-8">Loading rules...</p>
+        </div>
+    </div>
+
+    <!-- Rule Editor Modal -->
+    <div id="ruleEditorModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4">
+            <div class="p-6 border-b flex items-center justify-between">
+                <h3 class="text-xl font-bold" id="modalTitle">Create New Rule</h3>
+                <button onclick="closeRuleEditor()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <!-- Rule Name -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Rule Name *</label>
+                    <input type="text" id="ruleName" placeholder="e.g., Behavioral Anomaly: Unusual Port Activity"
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Base Score -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Base Risk Score (0-100) *</label>
+                    <input type="number" id="ruleScore" min="0" max="100" placeholder="50"
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Description</label>
+                    <textarea id="ruleDescription" rows="3" placeholder="Describe what this rule detects..."
+                              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+
+                <!-- Conditions -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-medium">Conditions *</label>
+                        <button onclick="addCondition()" class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700">
+                            <i class="fas fa-plus"></i> Add Condition
+                        </button>
+                    </div>
+                    <div id="conditionsList" class="space-y-3"></div>
+                </div>
+
+                <!-- MITRE ATT&CK Mapping -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">MITRE Technique ID</label>
+                        <input type="text" id="ruleTechniqueId" placeholder="e.g., T1595.002"
+                               class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">MITRE Tactic</label>
+                        <select id="ruleTactic" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="">Select Tactic</option>
+                            <option value="Reconnaissance">Reconnaissance</option>
+                            <option value="Initial Access">Initial Access</option>
+                            <option value="Execution">Execution</option>
+                            <option value="Persistence">Persistence</option>
+                            <option value="Privilege Escalation">Privilege Escalation</option>
+                            <option value="Defense Evasion">Defense Evasion</option>
+                            <option value="Credential Access">Credential Access</option>
+                            <option value="Discovery">Discovery</option>
+                            <option value="Lateral Movement">Lateral Movement</option>
+                            <option value="Collection">Collection</option>
+                            <option value="Command and Control">Command and Control</option>
+                            <option value="Exfiltration">Exfiltration</option>
+                            <option value="Impact">Impact</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Rule Template Examples -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-blue-900 mb-2">
+                        <i class="fas fa-info-circle"></i> Condition Field Examples
+                    </h4>
+                    <div class="text-sm text-blue-800 space-y-1">
+                        <p><code class="bg-blue-100 px-2 py-1 rounded">event.dataset</code> - Log type (conn, http, dns, etc.)</p>
+                        <p><code class="bg-blue-100 px-2 py-1 rounded">source.ip</code> - Source IP address</p>
+                        <p><code class="bg-blue-100 px-2 py-1 rounded">destination.port</code> - Destination port number</p>
+                        <p><code class="bg-blue-100 px-2 py-1 rounded">user_agent.original</code> - User agent string</p>
+                        <p><code class="bg-blue-100 px-2 py-1 rounded">url.path</code> - URL path</p>
+                        <p><code class="bg-blue-100 px-2 py-1 rounded">dns.question.name</code> - DNS query name</p>
+                    </div>
+                    <h4 class="font-semibold text-blue-900 mt-4 mb-2">
+                        <i class="fas fa-info-circle"></i> Operator Examples
+                    </h4>
+                    <div class="text-sm text-blue-800 space-y-1">
+                        <p><code class="bg-blue-100 px-2 py-1 rounded">equals</code> - Exact match (e.g., "http")</p>
+                        <p><code class="bg-blue-100 px-2 py-1 rounded">contains_any</code> - Match any value in list (e.g., ["nmap", "curl"])</p>
+                        <p><code class="bg-blue-100 px-2 py-1 rounded">ends_with_any</code> - Ends with any value in list (e.g., [".exe", ".dll"])</p>
+                        <p><code class="bg-blue-100 px-2 py-1 rounded">gt</code> - Greater than (e.g., 49151 for ports)</p>
+                        <p><code class="bg-blue-100 px-2 py-1 rounded">is_new_country</code> - New country based on profile</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 border-t bg-gray-50 flex justify-end gap-3">
+                <button onclick="closeRuleEditor()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">
+                    Cancel
+                </button>
+                <button onclick="saveRule()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-save"></i> Save Rule
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Message -->
+    <div id="statusMessage" class="hidden p-4 rounded-lg"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let rules = [];
+let currentConditions = [];
+let editingRuleId = null;
+
+async function loadRules() {
+    try {
+        const response = await fetch('/api/rules');
+        const data = await response.json();
+        rules = data.rules || [];
+        displayRules();
+    } catch (error) {
+        showStatus('Error loading rules', 'error');
+    }
+}
+
+function displayRules() {
+    const container = document.getElementById('rulesList');
+    
+    if (rules.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">No rules defined. Click "Create New Rule" to get started.</p>';
+        return;
+    }
+
+    container.innerHTML = rules.map(rule => {
+        const condCount = Object.keys(rule.conditions || {}).length;
+        const enabledBadge = rule.enabled 
+            ? '<span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Active</span>'
+            : '<span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded">Disabled</span>';
+        const defaultBadge = rule.id <= 27 
+            ? '<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">Default</span>'
+            : '';
+        
+        return `
+            <div class="border rounded-lg p-4 hover:shadow-md transition">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2">
+                            <h3 class="font-semibold text-lg">${rule.name}</h3>
+                            ${enabledBadge}
+                            ${defaultBadge}
+                            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">Score: ${rule.base_score}</span>
+                        </div>
+                        ${rule.description ? `<p class="text-sm text-gray-600 mb-2">${rule.description}</p>` : ''}
+                        <div class="flex items-center gap-4 text-sm text-gray-500">
+                            <span><i class="fas fa-filter"></i> ${condCount} condition${condCount !== 1 ? 's' : ''}</span>
+                            ${rule.mitre_technique_id ? `<span><i class="fas fa-crosshairs"></i> ${rule.mitre_technique_id}</span>` : ''}
+                            ${rule.mitre_tactic ? `<span><i class="fas fa-bullseye"></i> ${rule.mitre_tactic}</span>` : ''}
+                            <span class="text-xs"><i class="far fa-clock"></i> ${new Date(rule.created_at).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="toggleRule(${rule.id})" 
+                                class="px-3 py-1 ${rule.enabled ? 'bg-gray-200 hover:bg-gray-300' : 'bg-green-500 hover:bg-green-600 text-white'} rounded text-sm">
+                            <i class="fas fa-${rule.enabled ? 'pause' : 'play'}"></i>
+                        </button>
+                        <button onclick="editRule(${rule.id})" 
+                                class="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 ${rule.id <= 27 ? 'opacity-50 cursor-not-allowed' : ''}"
+                                ${rule.id <= 27 ? 'disabled' : ''}>
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteRule(${rule.id})" 
+                                class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 ${rule.id <= 27 ? 'opacity-50 cursor-not-allowed' : ''}"
+                                ${rule.id <= 27 ? 'disabled' : ''}>
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Conditions Details -->
+                <details class="mt-3 text-sm">
+                    <summary class="cursor-pointer text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-code"></i> View Conditions
+                    </summary>
+                    <pre class="mt-2 bg-gray-50 p-3 rounded overflow-x-auto">${JSON.stringify(rule.conditions, null, 2)}</pre>
+                </details>
+            </div>
+        `;
+    }).join('');
+}
+
+function openRuleEditor(ruleId = null) {
+    editingRuleId = ruleId;
+    currentConditions = [];
+    
+    if (ruleId) {
+        const rule = rules.find(r => r.id === ruleId);
+        if (rule) {
+            document.getElementById('modalTitle').textContent = 'Edit Rule';
+            document.getElementById('ruleName').value = rule.name;
+            document.getElementById('ruleScore').value = rule.base_score;
+            document.getElementById('ruleDescription').value = rule.description || '';
+            document.getElementById('ruleTechniqueId').value = rule.mitre_technique_id || '';
+            document.getElementById('ruleTactic').value = rule.mitre_tactic || '';
+            
+            // Load existing conditions
+            currentConditions = Object.entries(rule.conditions || {}).map(([field, value]) => ({
+                field,
+                operator: typeof value === 'object' ? value.type || 'equals' : 'equals',
+                value: typeof value === 'object' ? JSON.stringify(value.value || value) : value
+            }));
+        }
+    } else {
+        document.getElementById('modalTitle').textContent = 'Create New Rule';
+        document.getElementById('ruleName').value = '';
+        document.getElementById('ruleScore').value = '';
+        document.getElementById('ruleDescription').value = '';
+        document.getElementById('ruleTechniqueId').value = '';
+        document.getElementById('ruleTactic').value = '';
+    }
+    
+    displayConditions();
+    document.getElementById('ruleEditorModal').classList.remove('hidden');
+}
+
+function closeRuleEditor() {
+    document.getElementById('ruleEditorModal').classList.add('hidden');
+    editingRuleId = null;
+    currentConditions = [];
+}
+
+function addCondition() {
+    currentConditions.push({ field: '', operator: 'equals', value: '' });
+    displayConditions();
+}
+
+function removeCondition(index) {
+    currentConditions.splice(index, 1);
+    displayConditions();
+}
+
+function displayConditions() {
+    const container = document.getElementById('conditionsList');
+    
+    if (currentConditions.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-500">No conditions defined. Click "Add Condition" to start.</p>';
+        return;
+    }
+    
+    container.innerHTML = currentConditions.map((cond, index) => `
+        <div class="flex gap-2 items-start bg-gray-50 p-3 rounded">
+            <input type="text" placeholder="Field (e.g., event.dataset)" value="${cond.field}"
+                   onchange="currentConditions[${index}].field = this.value"
+                   class="flex-1 px-3 py-2 border rounded text-sm">
+            <select onchange="currentConditions[${index}].operator = this.value"
+                    class="px-3 py-2 border rounded text-sm">
+                <option value="equals" ${cond.operator === 'equals' ? 'selected' : ''}>Equals</option>
+                <option value="contains" ${cond.operator === 'contains' ? 'selected' : ''}>Contains</option>
+                <option value="contains_any" ${cond.operator === 'contains_any' ? 'selected' : ''}>Contains Any</option>
+                <option value="ends_with" ${cond.operator === 'ends_with' ? 'selected' : ''}>Ends With</option>
+                <option value="ends_with_any" ${cond.operator === 'ends_with_any' ? 'selected' : ''}>Ends With Any</option>
+                <option value="gt" ${cond.operator === 'gt' ? 'selected' : ''}>Greater Than</option>
+                <option value="lt" ${cond.operator === 'lt' ? 'selected' : ''}>Less Than</option>
+                <option value="is_in" ${cond.operator === 'is_in' ? 'selected' : ''}>Is In List</option>
+                <option value="not_equals" ${cond.operator === 'not_equals' ? 'selected' : ''}>Not Equals</option>
+                <option value="is_new_country" ${cond.operator === 'is_new_country' ? 'selected' : ''}>Is New Country</option>
+                <option value="is_rare_asn" ${cond.operator === 'is_rare_asn' ? 'selected' : ''}>Is Rare ASN</option>
+                <option value="is_rare_isp" ${cond.operator === 'is_rare_isp' ? 'selected' : ''}>Is Rare ISP</option>
+                <option value="is_rare_port" ${cond.operator === 'is_rare_port' ? 'selected' : ''}>Is Rare Port</option>
+                <option value="is_new_user_agent" ${cond.operator === 'is_new_user_agent' ? 'selected' : ''}>Is New User-Agent</option>
+            </select>
+            <input type="text" placeholder="Value (e.g., 'http' or ['.exe', '.dll'])" value="${cond.value}"
+                   onchange="currentConditions[${index}].value = this.value"
+                   class="flex-1 px-3 py-2 border rounded text-sm">
+            <button onclick="removeCondition(${index})" 
+                    class="px-3 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+async function saveRule() {
+    const name = document.getElementById('ruleName').value.trim();
+    const score = parseInt(document.getElementById('ruleScore').value);
+    const description = document.getElementById('ruleDescription').value.trim();
+    const techniqueId = document.getElementById('ruleTechniqueId').value.trim();
+    const tactic = document.getElementById('ruleTactic').value;
+    
+    if (!name || !score) {
+        showStatus('Please fill in all required fields', 'error');
+        return;
+    }
+    
+    if (currentConditions.length === 0) {
+        showStatus('Please add at least one condition', 'error');
+        return;
+    }
+    
+    // Build conditions object
+    const conditions = {};
+    for (const cond of currentConditions) {
+        if (!cond.field || !cond.value) continue;
+        
+        if (cond.operator === 'equals' || cond.operator === 'not_equals') {
+            conditions[cond.field] = cond.value;
+        } else {
+            try {
+                const parsedValue = JSON.parse(cond.value);
+                conditions[cond.field] = { type: cond.operator, value: parsedValue };
+            } catch {
+                conditions[cond.field] = { type: cond.operator, value: cond.value };
+            }
+        }
+    }
+    
+    const rule = {
+        name,
+        base_score: score,
+        description,
+        conditions,
+        mitre_technique_id: techniqueId,
+        mitre_tactic: tactic,
+        enabled: true
+    };
+    
+    try {
+        if (editingRuleId) {
+            // Update existing rule
+            const response = await fetch(`/api/rules/${editingRuleId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(rule)
+            });
+            const result = await response.json();
+            showStatus(result.message, 'success');
+        } else {
+            // Create new rule
+            const response = await fetch('/api/rules', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rule })
+            });
+            const result = await response.json();
+            showStatus(result.message, 'success');
+        }
+        
+        closeRuleEditor();
+        loadRules();
+    } catch (error) {
+        showStatus('Error saving rule', 'error');
+    }
+}
+
+async function deleteRule(ruleId) {
+    if (ruleId <= 27) {
+        showStatus('Default rules cannot be deleted', 'error');
+        return;
+    }
+    if (!confirm('Are you sure you want to delete this rule?')) return;
+    
+    try {
+        const response = await fetch(`/api/rules/${ruleId}`, { method: 'DELETE' });
+        const result = await response.json();
+        showStatus(result.message, 'success');
+        loadRules();
+    } catch (error) {
+        showStatus('Error deleting rule', 'error');
+    }
+}
+
+async function toggleRule(ruleId) {
+    const rule = rules.find(r => r.id === ruleId);
+    if (!rule) return;
+    
+    try {
+        const response = await fetch(`/api/rules/${ruleId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: !rule.enabled })
+        });
+        const result = await response.json();
+        showStatus(result.message, 'success');
+        loadRules();
+    } catch (error) {
+        showStatus('Error toggling rule', 'error');
+    }
+}
+
+function editRule(ruleId) {
+    if (ruleId <= 27) {
+        showStatus('Default rules cannot be edited', 'error');
+        return;
+    }
+    openRuleEditor(ruleId);
+}
+
+function showStatus(message, type) {
+    const statusDiv = document.getElementById('statusMessage');
+    statusDiv.textContent = message;
+    statusDiv.className = `p-4 rounded-lg ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+    statusDiv.classList.remove('hidden');
+    setTimeout(() => statusDiv.classList.add('hidden'), 3000);
+}
+
+document.addEventListener('DOMContentLoaded', loadRules);
+</script>
+{% endblock %}
