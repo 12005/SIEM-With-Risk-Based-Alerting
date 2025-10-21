@@ -1,0 +1,17 @@
+version: '3'
+services:
+  zeek:
+    image: zeek/zeek
+    volumes:
+      - ./pcap:/pcap
+      - ./zeek-logs:/zeek-logs
+    working_dir: /zeek-logs
+    entrypoint: /bin/bash
+
+  suricata:
+    image: jasonish/suricata:latest
+    volumes:
+      - ./pcap:/pcap
+      - ./suricata-logs:/logs
+    working_dir: /logs
+    entrypoint: /bin/sh

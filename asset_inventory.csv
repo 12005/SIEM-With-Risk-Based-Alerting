@@ -1,0 +1,15 @@
+ip,hostname,os,business_unit,vulnerability_score,impact_score,owner,criticality
+149.171.126.12,web01,Linux,Web,7.5,5,IT-Sec,high
+175.45.176.2,db01,Linux,Database,9.0,5,DBA-Team,critical
+192.168.1.10,winclient01,Windows 10,Finance,4.0,4,Finance,medium
+192.168.1.20,winclient02,Windows 11,HR,3.0,3,HR,low
+10.0.0.5,fileserver01,WindowsSrv,FileServer,6.0,4,IT-Ops,high
+10.0.0.8,mail01,Linux,Email,5.0,5,IT-Ops,medium
+203.0.113.25,vpn01,Linux,RemoteAccess,8.0,5,NetOps,critical
+198.51.100.50,api-gateway,Linux,API,6.5,4,DevOps,high
+192.168.1.50,ceo-laptop,MacOS,Exec,2.0,5,CEO,low
+192.168.1.60,intern-pc,Windows 10,Interns,1.0,1,InternTeam,low
+192.168.1.200,victim-host1,Windows,IT,80,5,admin,critical
+192.168.1.201,victim-host2,Windows,IT,80,5,admin,critical
+192.168.1.202,victim-host3,Windows,IT,80,5,admin,critical
+8.8.8.8,Linuxclient01,Linux,Server,2.0,5,Database,critical
